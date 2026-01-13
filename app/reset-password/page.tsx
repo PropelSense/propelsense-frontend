@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/lib/auth/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +20,7 @@ export default function ResetPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const { updatePassword } = useAuth();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -52,14 +54,15 @@ export default function ResetPasswordPage() {
 
     setIsLoading(true);
 
-    // TODO: Implement actual password reset logic
-    console.log("Password reset:", { token, password: formData.password });
+    const { error } = await updatePassword(formData.password);
 
-    // Simulate API call
-    setTimeout(() => {
+    if (error) {
+      setErrors({ general: error.message });
       setIsLoading(false);
+    } else {
       setIsSuccess(true);
-    }, 1000);
+      setIsLoading(false);
+    }
   };
 
   if (!token) {
@@ -150,6 +153,11 @@ export default function ResetPasswordPage() {
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-5 pt-6">
+              {errors.general && (
+                <div className="rounded-lg bg-red-900/20 border border-red-700 p-3 text-sm text-red-400">
+                  {errors.general}
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-neutral-200">New password</Label>
                 <Input

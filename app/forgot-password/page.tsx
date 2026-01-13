@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useAuth } from "@/lib/auth/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,19 +12,23 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { resetPassword } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
 
-    // TODO: Implement actual password reset logic
-    console.log("Password reset request for:", email);
+    const { error: resetError } = await resetPassword(email);
 
-    // Simulate API call
-    setTimeout(() => {
+    if (resetError) {
+      setError(resetError.message);
       setIsLoading(false);
+    } else {
       setIsSubmitted(true);
-    }, 1000);
+      setIsLoading(false);
+    }
   };
 
   if (isSubmitted) {
@@ -95,6 +100,11 @@ export default function ForgotPasswordPage() {
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-5 pt-6">
+              {error && (
+                <div className="rounded-lg bg-red-900/20 border border-red-700 p-3 text-sm text-red-400">
+                  {error}
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-neutral-200">Email</Label>
                 <Input

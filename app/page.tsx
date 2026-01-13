@@ -1,8 +1,22 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useAuth } from "@/lib/auth/AuthContext";
 import Link from "next/link";
 
 export default function Home() {
+  const { user, signOut } = useAuth();
+
+  const getUserInitials = () => {
+    if (user?.user_metadata?.first_name && user?.user_metadata?.last_name) {
+      return `${user.user_metadata.first_name[0]}${user.user_metadata.last_name[0]}`.toUpperCase();
+    }
+    return user?.email?.[0]?.toUpperCase() || "U";
+  };
+
   return (
     <main className="relative min-h-screen bg-gradient-to-b from-neutral-900 via-neutral-950 to-neutral-900">
       {/* Header/Navigation */}
@@ -24,9 +38,68 @@ export default function Home() {
             <Link href="#about" className="text-neutral-400 hover:text-white transition-colors">
               About
             </Link>
-            <Button className="bg-zinc-700 hover:bg-zinc-600 text-white font-medium border border-zinc-600 shadow-md">
-              Get Started
-            </Button>
+            {user ? (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="focus:outline-none focus:ring-2 focus:ring-zinc-500 rounded-full">
+                    <Avatar className="w-10 h-10 cursor-pointer border-2 border-zinc-600 hover:border-zinc-500 transition-colors">
+                      <AvatarFallback className="bg-gradient-to-br from-zinc-700 to-zinc-800 text-white font-semibold">
+                        {getUserInitials()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72 bg-zinc-900 border-zinc-700 p-4" align="end">
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3 pb-3 border-b border-zinc-700">
+                      <Avatar className="w-12 h-12 border-2 border-zinc-600">
+                        <AvatarFallback className="bg-gradient-to-br from-zinc-700 to-zinc-800 text-white font-semibold text-lg">
+                          {getUserInitials()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white truncate">
+                          {user.user_metadata?.first_name && user.user_metadata?.last_name
+                            ? `${user.user_metadata.first_name} ${user.user_metadata.last_name}`
+                            : "User"}
+                        </p>
+                        <p className="text-xs text-neutral-400 truncate">{user.email}</p>
+                      </div>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <span className="text-neutral-500">Email:</span>
+                        <p className="text-white truncate">{user.email}</p>
+                      </div>
+                      {user.user_metadata?.first_name && (
+                        <div>
+                          <span className="text-neutral-500">Name:</span>
+                          <p className="text-white">
+                            {user.user_metadata.first_name} {user.user_metadata.last_name}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="pt-3 border-t border-zinc-700">
+                      <Button
+                        onClick={() => signOut()}
+                        variant="outline"
+                        className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border-zinc-600"
+                        size="sm"
+                      >
+                        Sign Out
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            ) : (
+              <Link href="/login">
+                <Button className="bg-zinc-700 hover:bg-zinc-600 text-white font-medium border border-zinc-600 shadow-md">
+                  Login
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </nav>
