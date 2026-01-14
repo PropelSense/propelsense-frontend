@@ -38,6 +38,11 @@ export default function Home() {
             <Link href="#about" className="text-neutral-400 hover:text-white transition-colors">
               About
             </Link>
+            {user && (
+              <Link href="/dashboard" className="text-neutral-400 hover:text-white transition-colors">
+                Dashboard
+              </Link>
+            )}
             {user ? (
               <Popover>
                 <PopoverTrigger asChild>
@@ -61,7 +66,7 @@ export default function Home() {
                         <p className="text-sm font-medium text-white truncate">
                           {user.user_metadata?.first_name && user.user_metadata?.last_name
                             ? `${user.user_metadata.first_name} ${user.user_metadata.last_name}`
-                            : "User"}
+                            : user.user_metadata?.full_name || "User"}
                         </p>
                         <p className="text-xs text-neutral-400 truncate">{user.email}</p>
                       </div>
@@ -71,16 +76,27 @@ export default function Home() {
                         <span className="text-neutral-500">Email:</span>
                         <p className="text-white truncate">{user.email}</p>
                       </div>
-                      {user.user_metadata?.first_name && (
+                      {(user.user_metadata?.first_name || user.user_metadata?.full_name) && (
                         <div>
                           <span className="text-neutral-500">Name:</span>
                           <p className="text-white">
-                            {user.user_metadata.first_name} {user.user_metadata.last_name}
+                            {user.user_metadata?.first_name && user.user_metadata?.last_name
+                              ? `${user.user_metadata.first_name} ${user.user_metadata.last_name}`
+                              : user.user_metadata?.full_name}
                           </p>
                         </div>
                       )}
                     </div>
-                    <div className="pt-3 border-t border-zinc-700">
+                    <div className="pt-3 border-t border-zinc-700 space-y-2">
+                      <Link href="/dashboard" className="block">
+                        <Button
+                          variant="outline"
+                          className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border-zinc-600"
+                          size="sm"
+                        >
+                          Go to Dashboard
+                        </Button>
+                      </Link>
                       <Button
                         onClick={() => signOut()}
                         variant="outline"
