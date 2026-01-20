@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import Link from "next/link";
 import WeatherDetails from "./components/WeatherDetails";
+import MarineWeather from "./components/MarineWeather";
 
 export default function DashboardPage() {
   const { user, signOut } = useAuth();
@@ -223,6 +224,8 @@ export default function DashboardPage() {
         <div className="p-8">
           {activeItem === "weather" ? (
             <WeatherDetails />
+          ) : activeItem === "analytics" ? (
+            <MarineWeather />
           ) : (
           <div className="max-w-6xl mx-auto space-y-8">
             {/* Welcome Section */}
