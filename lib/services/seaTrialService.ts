@@ -10,6 +10,7 @@ import type {
   SeaTrialAnalysis,
   SeaTrialSummary,
   SeaTrialFilters,
+  MLPredictionResult,
 } from "@/lib/types/seaTrial.types";
 
 const BASE_URL = API_BASE_URL || "http://localhost:8000";
@@ -139,6 +140,46 @@ export async function getSeaTrialsSummary(): Promise<SeaTrialSummary> {
   if (!response.ok) {
     throw new Error(
       `Failed to fetch sea trials summary: ${response.statusText}`,
+    );
+  }
+
+  return response.json();
+}
+
+/**
+ * Run the integrated XGBoost ML model on a sea trial to predict shaft power.
+ * Optionally saves the result to the trial's predicted_power field.
+ *
+ * @param trialId  - Sea trial to run prediction on
+ * @param token    - Supabase JWT auth token (passed in Authorization header)
+ * @param updateTrial - Whether to persist result to trial (default: true)
+ */
+export async function runMLPrediction(
+  trialId: number,
+  token: string,
+  updateTrial: boolean = true,
+): Promise<MLPredictionResult> {
+  const params = new URLSearchParams({
+    update_trial: updateTrial.toString(),
+  });
+
+  const response = await fetch(
+    `${ENDPOINT}/${trialId}/ml-predict?${params.toString()}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response
+      .json()
+      .catch(() => ({ detail: response.statusText }));
+    throw new Error(
+      error?.detail || `ML prediction failed: ${response.statusText}`,
     );
   }
 

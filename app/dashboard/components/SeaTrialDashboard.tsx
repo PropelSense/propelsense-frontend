@@ -12,6 +12,7 @@ import {
   getSeaTrials,
   getSeaTrialAnalysis,
   getSeaTrialsSummary,
+  runMLPrediction,
   formatTrialDate,
   getStatusColor,
   getPerformanceColor,
@@ -22,6 +23,7 @@ import type {
   SeaTrialAnalysis,
   SeaTrialSummary,
   TrialStatus,
+  MLPredictionResult,
 } from "@/lib/types/seaTrial.types";
 
 export default function SeaTrialDashboard() {
@@ -32,6 +34,11 @@ export default function SeaTrialDashboard() {
   const [loading, setLoading] = useState(true);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [filterStatus, setFilterStatus] = useState<TrialStatus | "all">("all");
+
+  // ML prediction state
+  const [mlLoading, setMlLoading] = useState(false);
+  const [mlResult, setMlResult] = useState<MLPredictionResult | null>(null);
+  const [mlError, setMlError] = useState<string | null>(null);
 
   // Fetch trials and summary on mount
   useEffect(() => {
@@ -66,6 +73,9 @@ export default function SeaTrialDashboard() {
   const selectTrial = async (trial: SeaTrial) => {
     setSelectedTrial(trial);
     setAnalysisLoading(true);
+    // Clear previous ML result when switching trials
+    setMlResult(null);
+    setMlError(null);
 
     try {
       const analysisData = await getSeaTrialAnalysis(trial.sea_trial_id);
@@ -74,6 +84,62 @@ export default function SeaTrialDashboard() {
       console.error("Failed to fetch trial analysis:", error);
     } finally {
       setAnalysisLoading(false);
+    }
+  };
+
+  /** Run the XGBoost ML model on the selected trial */
+  const handleMLPredict = async () => {
+    if (!selectedTrial) return;
+    setMlLoading(true);
+    setMlResult(null);
+    setMlError(null);
+
+    try {
+      // Attempt to get a Supabase session token from localStorage
+      let token = "";
+      try {
+        const raw =
+          localStorage.getItem("sb-auth-token") ||
+          Object.values(localStorage).find(
+            (v) => typeof v === "string" && v.includes('"access_token"'),
+          ) ||
+          "";
+        if (raw) {
+          const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+          token = parsed?.access_token || parsed?.session?.access_token || "";
+        }
+      } catch {
+        // token stays empty — backend may not require auth for this endpoint
+      }
+
+      const result = await runMLPrediction(
+        selectedTrial.sea_trial_id,
+        token,
+        true,
+      );
+      setMlResult(result);
+
+      // Refresh the trial analysis to show the updated predicted_power
+      if (result.updated) {
+        const updated = await getSeaTrialAnalysis(selectedTrial.sea_trial_id);
+        setAnalysis(updated);
+        // Also refresh the trial object in state so the list reflects the change
+        setSelectedTrial((prev) =>
+          prev ? { ...prev, predicted_power: result.predicted_power_kw } : prev,
+        );
+        setTrials((prev) =>
+          prev.map((t) =>
+            t.sea_trial_id === selectedTrial.sea_trial_id
+              ? { ...t, predicted_power: result.predicted_power_kw }
+              : t,
+          ),
+        );
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "ML prediction failed";
+      setMlError(msg);
+    } finally {
+      setMlLoading(false);
     }
   };
 
@@ -280,9 +346,86 @@ export default function SeaTrialDashboard() {
             <>
               {/* Trial Overview */}
               <div className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-6">
-                <h2 className="text-xl font-semibold mb-4 text-white">
-                  {analysis.trial_name}
-                </h2>
+                <div className="flex items-start justify-between mb-4">
+                  <h2 className="text-xl font-semibold text-white">
+                    {analysis.trial_name}
+                  </h2>
+                  {/* ML Prediction button */}
+                  <Button
+                    onClick={handleMLPredict}
+                    disabled={mlLoading}
+                    size="sm"
+                    className="bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50 flex items-center gap-2"
+                    title="Use the XGBoost model to predict shaft power from this trial's conditions"
+                  >
+                    {mlLoading ? (
+                      <>
+                        <span className="animate-spin inline-block w-3 h-3 border-2 border-white/30 border-t-white rounded-full" />
+                        Predicting…
+                      </>
+                    ) : (
+                      <>⚡ ML Predict Power</>
+                    )}
+                  </Button>
+                </div>
+
+                {/* ML result / error banner */}
+                {mlResult && (
+                  <div className="mb-4 rounded-lg border border-violet-700/50 bg-violet-950/40 p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-violet-400 font-semibold text-sm">
+                        ⚡ XGBoost ML Prediction
+                      </span>
+                      {mlResult.updated && (
+                        <span className="text-xs bg-green-700/40 text-green-300 px-2 py-0.5 rounded">
+                          Saved to trial
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <div className="text-xs text-zinc-400">
+                          Predicted Power
+                        </div>
+                        <div className="text-2xl font-bold text-violet-300">
+                          {mlResult.predicted_power_kw.toLocaleString("en-US", {
+                            maximumFractionDigits: 0,
+                          })}{" "}
+                          <span className="text-sm font-normal text-zinc-400">
+                            kW
+                          </span>
+                        </div>
+                        <div className="text-xs text-zinc-500 mt-0.5">
+                          {mlResult.predicted_power_mw.toFixed(3)} MW
+                        </div>
+                      </div>
+                      <div className="text-xs text-zinc-400 space-y-1">
+                        {Object.entries(mlResult.features_used)
+                          .filter(([, v]) => v !== 0)
+                          .slice(0, 5)
+                          .map(([k, v]) => (
+                            <div key={k} className="flex justify-between">
+                              <span className="text-zinc-500">
+                                {k.replace(/_/g, " ")}
+                              </span>
+                              <span className="text-zinc-300 font-mono">
+                                {(v as number).toFixed(3)}
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                    <p className="text-xs text-zinc-500 mt-2">
+                      {mlResult.message}
+                    </p>
+                  </div>
+                )}
+                {mlError && (
+                  <div className="mb-4 rounded-lg border border-red-700/50 bg-red-950/40 p-3 text-sm text-red-400">
+                    ⚠ {mlError}
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
                     <div className="text-sm text-zinc-400">Vessel</div>

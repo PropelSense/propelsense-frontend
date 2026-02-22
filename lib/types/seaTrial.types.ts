@@ -59,6 +59,9 @@ export interface SeaTrial {
   contract_fuel?: number;
   meets_contract?: boolean;
 
+  // ML feature
+  time_since_dry_dock?: number;
+
   // Additional data
   notes?: string;
   test_location?: string;
@@ -110,6 +113,9 @@ export interface SeaTrialCreate {
   contract_power?: number;
   contract_fuel?: number;
 
+  // ML feature
+  time_since_dry_dock?: number;
+
   // Additional data
   notes?: string;
   test_location?: string;
@@ -155,6 +161,9 @@ export interface SeaTrialUpdate {
   contract_speed?: number;
   contract_power?: number;
   contract_fuel?: number;
+
+  // ML feature
+  time_since_dry_dock?: number;
 
   // Additional data
   notes?: string;
@@ -211,4 +220,14 @@ export interface SeaTrialFilters {
   limit?: number;
   status?: TrialStatus;
   vessel_name?: string;
+}
+
+export interface MLPredictionResult {
+  sea_trial_id: number;
+  predicted_power_kw: number;
+  predicted_power_mw: number;
+  updated: boolean;
+  message: string;
+  features_used: Record<string, number>;
+  trial?: SeaTrial;
 }
