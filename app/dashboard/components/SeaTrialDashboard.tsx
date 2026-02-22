@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import AreaChart from "@/app/components/charts/AreaChart";
 import BarComparisonChart from "@/app/components/charts/BarComparisonChart";
@@ -12,6 +12,9 @@ import {
   getSeaTrials,
   getSeaTrialAnalysis,
   getSeaTrialsSummary,
+  createSeaTrial,
+  updateSeaTrial,
+  deleteSeaTrial,
   runMLPrediction,
   formatTrialDate,
   getStatusColor,
@@ -20,11 +23,80 @@ import {
 } from "@/lib/services/seaTrialService";
 import type {
   SeaTrial,
+  SeaTrialCreate,
   SeaTrialAnalysis,
   SeaTrialSummary,
   TrialStatus,
   MLPredictionResult,
 } from "@/lib/types/seaTrial.types";
+
+// ── Form helper micro-components ─────────────────────────────────────────────
+const inputCls =
+  "w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500";
+
+function FormSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section>
+      <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-3">
+        {title}
+      </h3>
+      {children}
+    </section>
+  );
+}
+
+function FormLabel({ children }: { children: ReactNode }) {
+  return <label className="block text-xs text-zinc-400 mb-1">{children}</label>;
+}
+
+function FormInput({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className={inputCls}
+    />
+  );
+}
+
+function FormNumInput({
+  value,
+  onChange,
+  step = "0.01",
+}: {
+  value: number | undefined;
+  onChange: (v: number | undefined) => void;
+  step?: string;
+}) {
+  return (
+    <input
+      type="number"
+      step={step}
+      value={value ?? ""}
+      onChange={(e) =>
+        onChange(e.target.value ? parseFloat(e.target.value) : undefined)
+      }
+      className={inputCls}
+    />
+  );
+}
+// ── End form helpers ──────────────────────────────────────────────────────────
 
 export default function SeaTrialDashboard() {
   const [trials, setTrials] = useState<SeaTrial[]>([]);
@@ -39,6 +111,18 @@ export default function SeaTrialDashboard() {
   const [mlLoading, setMlLoading] = useState(false);
   const [mlResult, setMlResult] = useState<MLPredictionResult | null>(null);
   const [mlError, setMlError] = useState<string | null>(null);
+
+  // Add / Edit form state
+  const [showForm, setShowForm] = useState(false);
+  const [editingTrial, setEditingTrial] = useState<SeaTrial | null>(null);
+  const [formLoading, setFormLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [formData, setFormData] = useState<SeaTrialCreate>({
+    trial_name: "",
+    vessel_name: "",
+    trial_date: new Date().toISOString().slice(0, 16),
+    status: "planned" as TrialStatus,
+  });
 
   // Fetch trials and summary on mount
   useEffect(() => {
@@ -140,6 +224,129 @@ export default function SeaTrialDashboard() {
       setMlError(msg);
     } finally {
       setMlLoading(false);
+    }
+  };
+
+  // ── Form handlers ─────────────────────────────────────────────────────────
+  const openForNew = () => {
+    setEditingTrial(null);
+    setFormData({
+      trial_name: "",
+      vessel_name: "",
+      trial_date: new Date().toISOString().slice(0, 16),
+      status: "planned" as TrialStatus,
+    });
+    setFormError(null);
+    setShowForm(true);
+  };
+
+  const openForEdit = (trial: SeaTrial) => {
+    setEditingTrial(trial);
+    setFormData({
+      trial_name: trial.trial_name,
+      vessel_name: trial.vessel_name,
+      trial_date: trial.trial_date.slice(0, 16),
+      status: trial.status,
+      test_location: trial.test_location,
+      duration_hours: trial.duration_hours,
+      wind_speed: trial.wind_speed,
+      wind_direction: trial.wind_direction,
+      wave_height: trial.wave_height,
+      wave_period: trial.wave_period,
+      current_speed: trial.current_speed,
+      current_direction: trial.current_direction,
+      water_temperature: trial.water_temperature,
+      air_temperature: trial.air_temperature,
+      water_depth: trial.water_depth,
+      displacement: trial.displacement,
+      draft_fore: trial.draft_fore,
+      draft_aft: trial.draft_aft,
+      time_since_dry_dock: trial.time_since_dry_dock,
+      predicted_speed: trial.predicted_speed,
+      predicted_power: trial.predicted_power,
+      predicted_fuel_consumption: trial.predicted_fuel_consumption,
+      predicted_rpm: trial.predicted_rpm,
+      actual_speed: trial.actual_speed,
+      actual_power: trial.actual_power,
+      actual_fuel_consumption: trial.actual_fuel_consumption,
+      actual_rpm: trial.actual_rpm,
+      contract_speed: trial.contract_speed,
+      contract_power: trial.contract_power,
+      contract_fuel: trial.contract_fuel,
+      notes: trial.notes ?? undefined,
+    });
+    setFormError(null);
+    setShowForm(true);
+  };
+
+  const closeForm = () => {
+    setShowForm(false);
+    setEditingTrial(null);
+    setFormError(null);
+  };
+
+  const handleFormChange = (
+    key: string,
+    value: string | number | undefined,
+  ) => {
+    setFormData((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.trial_name || !formData.vessel_name || !formData.trial_date) {
+      setFormError("Trial name, vessel name, and date are required.");
+      return;
+    }
+    setFormLoading(true);
+    setFormError(null);
+    try {
+      // Normalise datetime-local value ("2026-02-22T14:30" → add seconds)
+      const dataToSend: SeaTrialCreate = {
+        ...formData,
+        trial_date:
+          formData.trial_date.length === 16
+            ? formData.trial_date + ":00"
+            : formData.trial_date,
+      };
+      let saved: SeaTrial;
+      if (editingTrial) {
+        saved = await updateSeaTrial(editingTrial.sea_trial_id, dataToSend);
+      } else {
+        saved = await createSeaTrial(dataToSend);
+      }
+      closeForm();
+      const [trialsData, summaryData] = await Promise.all([
+        getSeaTrials({ limit: 100 }),
+        getSeaTrialsSummary(),
+      ]);
+      setTrials(trialsData);
+      setSummary(summaryData);
+      await selectTrial(saved);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Failed to save trial");
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleDelete = async (trial: SeaTrial) => {
+    if (!confirm(`Delete "${trial.trial_name}"? This cannot be undone.`))
+      return;
+    try {
+      await deleteSeaTrial(trial.sea_trial_id);
+      if (selectedTrial?.sea_trial_id === trial.sea_trial_id) {
+        setSelectedTrial(null);
+        setAnalysis(null);
+        setMlResult(null);
+      }
+      const [trialsData, summaryData] = await Promise.all([
+        getSeaTrials({ limit: 100 }),
+        getSeaTrialsSummary(),
+      ]);
+      setTrials(trialsData);
+      setSummary(summaryData);
+    } catch (err) {
+      console.error("Delete failed:", err);
     }
   };
 
@@ -251,8 +458,17 @@ export default function SeaTrialDashboard() {
         <div className="lg:col-span-1">
           <div className="bg-zinc-900/50 rounded-lg border border-zinc-800">
             <div className="px-6 py-4 border-b border-zinc-800">
-              <h2 className="text-lg font-semibold text-white">Sea Trials</h2>
-              <div className="flex gap-2 mt-3">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold text-white">Sea Trials</h2>
+                <Button
+                  size="sm"
+                  onClick={openForNew}
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs"
+                >
+                  + New Trial
+                </Button>
+              </div>
+              <div className="flex gap-2">
                 <Button
                   variant={filterStatus === "all" ? "default" : "outline"}
                   size="sm"
@@ -281,7 +497,7 @@ export default function SeaTrialDashboard() {
                 </Button>
               </div>
             </div>
-            <div className="max-h-[600px] overflow-y-auto custom-scrollbar">
+            <div className="max-h-150 overflow-y-auto custom-scrollbar">
               {trials.length === 0 ? (
                 <div className="p-6 text-center text-zinc-400">
                   No trials found
@@ -350,23 +566,41 @@ export default function SeaTrialDashboard() {
                   <h2 className="text-xl font-semibold text-white">
                     {analysis.trial_name}
                   </h2>
-                  {/* ML Prediction button */}
-                  <Button
-                    onClick={handleMLPredict}
-                    disabled={mlLoading}
-                    size="sm"
-                    className="bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50 flex items-center gap-2"
-                    title="Use the XGBoost model to predict shaft power from this trial's conditions"
-                  >
-                    {mlLoading ? (
-                      <>
-                        <span className="animate-spin inline-block w-3 h-3 border-2 border-white/30 border-t-white rounded-full" />
-                        Predicting…
-                      </>
-                    ) : (
-                      <>⚡ ML Predict Power</>
-                    )}
-                  </Button>
+                  {/* Action buttons */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      onClick={handleMLPredict}
+                      disabled={mlLoading}
+                      size="sm"
+                      className="bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50 flex items-center gap-2"
+                      title="Use the XGBoost model to predict shaft power from this trial's conditions"
+                    >
+                      {mlLoading ? (
+                        <>
+                          <span className="animate-spin inline-block w-3 h-3 border-2 border-white/30 border-t-white rounded-full" />
+                          Predicting…
+                        </>
+                      ) : (
+                        <>⚡ ML Predict</>
+                      )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openForEdit(selectedTrial!)}
+                      className="text-zinc-300 border-zinc-700 hover:bg-zinc-800 text-xs"
+                    >
+                      ✎ Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDelete(selectedTrial!)}
+                      className="text-red-400 border-red-900/50 hover:bg-red-950/30 text-xs"
+                    >
+                      🗑 Delete
+                    </Button>
+                  </div>
                 </div>
 
                 {/* ML result / error banner */}
@@ -578,6 +812,265 @@ export default function SeaTrialDashboard() {
           ) : null}
         </div>
       </div>
+
+      {/* ── Add / Edit Sea Trial – Slide-in Drawer ────────────────────────── */}
+      {showForm && (
+        <div
+          className="fixed inset-0 z-50 flex"
+          style={{ background: "rgba(0,0,0,0.65)" }}
+          onClick={closeForm}
+        >
+          <div
+            className="ml-auto w-full max-w-2xl bg-zinc-950 border-l border-zinc-800 flex flex-col h-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drawer header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 shrink-0">
+              <h2 className="text-lg font-semibold text-white">
+                {editingTrial
+                  ? `Edit: ${editingTrial.trial_name}`
+                  : "New Sea Trial"}
+              </h2>
+              <button
+                onClick={closeForm}
+                className="text-zinc-400 hover:text-white text-2xl leading-none px-1"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Drawer body */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
+              {formError && (
+                <div className="rounded-lg border border-red-700/50 bg-red-950/40 p-3 text-sm text-red-400">
+                  ⚠ {formError}
+                </div>
+              )}
+
+              {/* Trial Info */}
+              <FormSection title="Trial Info">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <FormLabel>Trial Name *</FormLabel>
+                    <FormInput
+                      value={formData.trial_name}
+                      onChange={(v) => handleFormChange("trial_name", v)}
+                      placeholder="e.g. Icon of the Seas – Sea Trial #1"
+                    />
+                  </div>
+                  <div>
+                    <FormLabel>Vessel Name *</FormLabel>
+                    <FormInput
+                      value={formData.vessel_name}
+                      onChange={(v) => handleFormChange("vessel_name", v)}
+                      placeholder="e.g. Icon of the Seas"
+                    />
+                  </div>
+                  <div>
+                    <FormLabel>Status</FormLabel>
+                    <select
+                      value={formData.status}
+                      onChange={(e) =>
+                        handleFormChange("status", e.target.value)
+                      }
+                      className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                    >
+                      <option value="planned">Planned</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                  <div>
+                    <FormLabel>Trial Date *</FormLabel>
+                    <input
+                      type="datetime-local"
+                      value={
+                        typeof formData.trial_date === "string"
+                          ? formData.trial_date.slice(0, 16)
+                          : ""
+                      }
+                      onChange={(e) =>
+                        handleFormChange("trial_date", e.target.value)
+                      }
+                      className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 scheme-dark"
+                    />
+                  </div>
+                  <div>
+                    <FormLabel>Test Location</FormLabel>
+                    <FormInput
+                      value={formData.test_location ?? ""}
+                      onChange={(v) =>
+                        handleFormChange("test_location", v || undefined)
+                      }
+                      placeholder="e.g. Gulf of Finland"
+                    />
+                  </div>
+                  <div>
+                    <FormLabel>Duration (hours)</FormLabel>
+                    <FormNumInput
+                      value={formData.duration_hours}
+                      onChange={(v) => handleFormChange("duration_hours", v)}
+                      step="0.5"
+                    />
+                  </div>
+                </div>
+              </FormSection>
+
+              {/* Environmental Conditions */}
+              <FormSection title="Environmental Conditions">
+                <div className="grid grid-cols-2 gap-4">
+                  {(
+                    [
+                      ["wind_speed", "Wind Speed (knots)"],
+                      ["wind_direction", "Wind Direction (°)"],
+                      ["wave_height", "Wave Height (m)"],
+                      ["wave_period", "Wave Period (s)"],
+                      ["current_speed", "Current Speed (knots)"],
+                      ["current_direction", "Current Direction (°)"],
+                      ["water_temperature", "Water Temp (°C)"],
+                      ["air_temperature", "Air Temp (°C)"],
+                    ] as [keyof SeaTrialCreate, string][]
+                  ).map(([key, label]) => (
+                    <div key={key}>
+                      <FormLabel>{label}</FormLabel>
+                      <FormNumInput
+                        value={formData[key] as number | undefined}
+                        onChange={(v) => handleFormChange(key, v)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </FormSection>
+
+              {/* Vessel Condition */}
+              <FormSection title="Vessel Condition">
+                <div className="grid grid-cols-2 gap-4">
+                  {(
+                    [
+                      ["displacement", "Displacement (tonnes)"],
+                      ["draft_fore", "Draft Fore (m)"],
+                      ["draft_aft", "Draft Aft (m)"],
+                      ["time_since_dry_dock", "Days Since Dry Dock"],
+                    ] as [keyof SeaTrialCreate, string][]
+                  ).map(([key, label]) => (
+                    <div key={key}>
+                      <FormLabel>{label}</FormLabel>
+                      <FormNumInput
+                        value={formData[key] as number | undefined}
+                        onChange={(v) => handleFormChange(key, v)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </FormSection>
+
+              {/* Predicted Performance */}
+              <FormSection title="Predicted Performance">
+                <p className="text-xs text-zinc-500 mb-3">
+                  Leave blank to fill later with the ⚡ ML Predict button.
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  {(
+                    [
+                      ["predicted_speed", "Speed (knots)"],
+                      ["predicted_power", "Power (kW)"],
+                      ["predicted_fuel_consumption", "Fuel (tonnes/day)"],
+                      ["predicted_rpm", "RPM"],
+                    ] as [keyof SeaTrialCreate, string][]
+                  ).map(([key, label]) => (
+                    <div key={key}>
+                      <FormLabel>{label}</FormLabel>
+                      <FormNumInput
+                        value={formData[key] as number | undefined}
+                        onChange={(v) => handleFormChange(key, v)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </FormSection>
+
+              {/* Actual Performance */}
+              <FormSection title="Actual Performance (Measured)">
+                <div className="grid grid-cols-2 gap-4">
+                  {(
+                    [
+                      ["actual_speed", "Speed (knots)"],
+                      ["actual_power", "Power (kW)"],
+                      ["actual_fuel_consumption", "Fuel (tonnes/day)"],
+                      ["actual_rpm", "RPM"],
+                    ] as [keyof SeaTrialCreate, string][]
+                  ).map(([key, label]) => (
+                    <div key={key}>
+                      <FormLabel>{label}</FormLabel>
+                      <FormNumInput
+                        value={formData[key] as number | undefined}
+                        onChange={(v) => handleFormChange(key, v)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </FormSection>
+
+              {/* Contract Specifications */}
+              <FormSection title="Contract Specifications">
+                <div className="grid grid-cols-2 gap-4">
+                  {(
+                    [
+                      ["contract_speed", "Contract Speed (knots)"],
+                      ["contract_power", "Contract Power (kW)"],
+                      ["contract_fuel", "Contract Fuel (t/day)"],
+                    ] as [keyof SeaTrialCreate, string][]
+                  ).map(([key, label]) => (
+                    <div key={key}>
+                      <FormLabel>{label}</FormLabel>
+                      <FormNumInput
+                        value={formData[key] as number | undefined}
+                        onChange={(v) => handleFormChange(key, v)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </FormSection>
+
+              {/* Notes */}
+              <FormSection title="Notes">
+                <textarea
+                  value={formData.notes ?? ""}
+                  onChange={(e) =>
+                    handleFormChange("notes", e.target.value || undefined)
+                  }
+                  rows={3}
+                  placeholder="Optional notes about trial conditions or observations…"
+                  className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 resize-none"
+                />
+              </FormSection>
+            </div>
+
+            {/* Drawer footer */}
+            <div className="shrink-0 flex gap-3 px-6 py-4 border-t border-zinc-800">
+              <Button
+                onClick={handleSubmit}
+                disabled={formLoading}
+                className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
+              >
+                {formLoading
+                  ? "Saving…"
+                  : editingTrial
+                    ? "Save Changes"
+                    : "Create Trial"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={closeForm}
+                className="text-zinc-300 border-zinc-700 hover:bg-zinc-800"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
