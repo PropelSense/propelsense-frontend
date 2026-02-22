@@ -15,6 +15,7 @@ import WeatherDetails from "./components/WeatherDetails";
 import MarineWeather from "./components/MarineWeather";
 import VesselMap from "./components/VesselMap";
 import SeaTrialDashboard from "./components/SeaTrialDashboard";
+import PowerPrediction from "./components/PowerPrediction";
 
 export default function DashboardPage() {
   const { user, signOut } = useAuth();
@@ -418,6 +419,8 @@ export default function DashboardPage() {
             <VesselMap />
           ) : activeItem === "sea-trials" ? (
             <SeaTrialDashboard />
+          ) : activeItem === "new-prediction" ? (
+            <PowerPrediction />
           ) : (
             <div className="max-w-6xl mx-auto space-y-8">
               {/* Welcome Section */}
@@ -483,7 +486,7 @@ export default function DashboardPage() {
                     <Button
                       variant="outline"
                       className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border-zinc-600"
-                      onClick={() => setActiveItem("weather")}
+                      onClick={() => setActiveItem("new-prediction")}
                     >
                       View History
                     </Button>
