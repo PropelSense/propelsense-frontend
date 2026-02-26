@@ -23,6 +23,247 @@ import type {
   PredictionStatsResponse,
 } from "@/lib/types/prediction.types";
 
+// ─── Features info modal ───────────────────────────────────────────────────────
+const RAW_FEATURES = [
+  { name: "draft_aft_telegram", desc: "Aft draft from telegram", unit: "m" },
+  { name: "draft_fore_telegram", desc: "Fore draft from telegram", unit: "m" },
+  { name: "stw", desc: "Speed through water", unit: "kn" },
+  {
+    name: "diff_speed_overground",
+    desc: "Difference between STW and SOG (current effect proxy)",
+    unit: "kn",
+  },
+  {
+    name: "awind_vcomp_provider",
+    desc: "Apparent wind — north/south component",
+    unit: "m/s",
+  },
+  {
+    name: "awind_ucomp_provider",
+    desc: "Apparent wind — east/west component",
+    unit: "m/s",
+  },
+  {
+    name: "rcurrent_vcomp",
+    desc: "Residual current — north/south component",
+    unit: "m/s",
+  },
+  {
+    name: "rcurrent_ucomp",
+    desc: "Residual current — east/west component",
+    unit: "m/s",
+  },
+  {
+    name: "comb_wind_swell_wave_height",
+    desc: "Combined wind & swell wave height",
+    unit: "m",
+  },
+  {
+    name: "timeSinceDryDock",
+    desc: "Days elapsed since last dry dock (hull fouling proxy)",
+    unit: "days",
+  },
+];
+
+const DERIVED_FEATURES = [
+  {
+    name: "stw_cubed",
+    desc: "STW³ — captures cubic propulsion resistance",
+    formula: "stw³",
+  },
+  {
+    name: "stw_squared",
+    desc: "STW² — quadratic drag component",
+    formula: "stw²",
+  },
+  {
+    name: "mean_draft",
+    desc: "Average of aft and fore drafts",
+    formula: "(aft + fore) / 2",
+  },
+  {
+    name: "trim",
+    desc: "Longitudinal inclination of the vessel",
+    formula: "aft − fore",
+  },
+  {
+    name: "wind_magnitude",
+    desc: "Total apparent wind speed",
+    formula: "√(u² + v²)",
+  },
+  {
+    name: "wind_angle",
+    desc: "Apparent wind direction",
+    formula: "atan2(v, u)",
+  },
+  {
+    name: "current_magnitude",
+    desc: "Total residual current speed",
+    formula: "√(u² + v²)",
+  },
+  {
+    name: "current_angle",
+    desc: "Residual current direction",
+    formula: "atan2(v, u)",
+  },
+  {
+    name: "speed_wind_interaction",
+    desc: "Interaction term between STW and wind speed",
+    formula: "stw × wind_magnitude",
+  },
+];
+
+function FeaturesInfoModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+
+      {/* Panel */}
+      <div
+        className="relative z-10 w-full max-w-2xl max-h-[85vh] flex flex-col rounded-xl border border-zinc-700/60 bg-zinc-900 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center">
+              <svg
+                className="w-4 h-4 text-blue-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"
+                />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-white">
+                Prediction Features
+              </h2>
+              <p className="text-xs text-zinc-500">
+                19 total · 10 raw inputs · 9 derived
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-zinc-500 hover:text-white transition-colors p-1 rounded-md hover:bg-zinc-800"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="overflow-y-auto flex-1 px-6 py-4 space-y-6 custom-scrollbar">
+          {/* Raw inputs */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xs font-semibold uppercase tracking-wider text-blue-400">
+                Raw Inputs
+              </span>
+              <span className="text-xs text-zinc-600">— provided by you</span>
+              <span className="ml-auto text-xs bg-blue-600/20 text-blue-300 px-2 py-0.5 rounded-full border border-blue-500/20">
+                10 features
+              </span>
+            </div>
+            <div className="space-y-1.5">
+              {RAW_FEATURES.map((f, i) => (
+                <div
+                  key={f.name}
+                  className="flex items-start gap-3 rounded-lg px-3 py-2.5 bg-zinc-800/40 border border-zinc-700/30 hover:bg-zinc-800/70 transition-colors"
+                >
+                  <span className="text-xs font-mono text-zinc-600 w-5 text-right shrink-0 mt-0.5">
+                    {i + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <code className="text-xs font-mono text-blue-300">
+                      {f.name}
+                    </code>
+                    <p className="text-xs text-zinc-400 mt-0.5">{f.desc}</p>
+                  </div>
+                  <span className="text-xs font-mono text-zinc-500 shrink-0 mt-0.5">
+                    {f.unit}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Derived features */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
+                Derived Features
+              </span>
+              <span className="text-xs text-zinc-600">
+                — computed automatically
+              </span>
+              <span className="ml-auto text-xs bg-emerald-600/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                9 features
+              </span>
+            </div>
+            <div className="space-y-1.5">
+              {DERIVED_FEATURES.map((f, i) => (
+                <div
+                  key={f.name}
+                  className="flex items-start gap-3 rounded-lg px-3 py-2.5 bg-zinc-800/40 border border-zinc-700/30 hover:bg-zinc-800/70 transition-colors"
+                >
+                  <span className="text-xs font-mono text-zinc-600 w-5 text-right shrink-0 mt-0.5">
+                    {i + 11}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <code className="text-xs font-mono text-emerald-300">
+                      {f.name}
+                    </code>
+                    <p className="text-xs text-zinc-400 mt-0.5">{f.desc}</p>
+                  </div>
+                  <code className="text-xs font-mono text-zinc-500 shrink-0 mt-0.5">
+                    {f.formula}
+                  </code>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-3 border-t border-zinc-800 flex items-center justify-between">
+          <p className="text-xs text-zinc-600">
+            Model: XGBoost · R² 0.978 · MAE ±866 kW
+          </p>
+          <button
+            onClick={onClose}
+            className="px-4 py-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-sm text-zinc-300 transition-colors border border-zinc-700/50"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Default form values ──────────────────────────────────────────────────────
 const DEFAULT_FEATURES: VesselFeatures = {
   draft_aft_telegram: 8.75,
@@ -599,6 +840,7 @@ export default function PowerPrediction() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<PowerPredictionResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showFeaturesModal, setShowFeaturesModal] = useState(false);
 
   // History state
   const [historyItems, setHistoryItems] = useState<PredictionHistoryItem[]>([]);
@@ -717,12 +959,37 @@ export default function PowerPrediction() {
     <div className="space-y-6">
       {/* Tab Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Power Prediction</h1>
-          <p className="text-zinc-400 text-sm mt-0.5">
-            XGBoost · R² 0.978 · MAE ±866 kW
-          </p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Power Prediction</h1>
+            <p className="text-zinc-400 text-sm mt-0.5">
+              XGBoost · R² 0.978 · MAE ±866 kW
+            </p>
+          </div>
+          <button
+            onClick={() => setShowFeaturesModal(true)}
+            title="View prediction features"
+            className="mt-0.5 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-700/50 bg-zinc-800/50 hover:bg-zinc-700/60 hover:border-zinc-600/60 text-zinc-400 hover:text-zinc-200 text-xs font-medium transition-all"
+          >
+            <svg
+              className="w-3.5 h-3.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            19 Features
+          </button>
         </div>
+        {showFeaturesModal && (
+          <FeaturesInfoModal onClose={() => setShowFeaturesModal(false)} />
+        )}
         <div className="flex bg-zinc-800/50 rounded-lg p-1 border border-zinc-700/40">
           <button
             onClick={() => setActiveTab("predict")}
