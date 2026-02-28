@@ -244,7 +244,7 @@ export default function MarineWeather() {
       </div>
 
       {/* Current Marine Conditions - Hero Section */}
-      <Card className="bg-linear-to-br from-blue-900/30 via-zinc-900/90 to-cyan-900/30 border-zinc-700">
+      <Card className="bg-zinc-900/90 border-zinc-700">
         <CardHeader>
           <CardTitle className="text-white text-xl">
             Current Marine Conditions
