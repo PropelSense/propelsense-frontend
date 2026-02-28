@@ -7,12 +7,19 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
-  
+
   const [formData, setFormData] = useState({
     password: "",
     confirmPassword: "",
@@ -78,7 +85,9 @@ function ResetPasswordForm() {
 
           <Card className="bg-zinc-900/90 border-zinc-700">
             <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl font-bold text-white">Invalid link</CardTitle>
+              <CardTitle className="text-2xl font-bold text-white">
+                Invalid link
+              </CardTitle>
               <CardDescription className="text-neutral-400">
                 This password reset link is invalid or has expired
               </CardDescription>
@@ -109,16 +118,16 @@ function ResetPasswordForm() {
 
           <Card className="bg-zinc-900/90 border-zinc-700">
             <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl font-bold text-white">Password reset successful</CardTitle>
+              <CardTitle className="text-2xl font-bold text-white">
+                Password reset successful
+              </CardTitle>
               <CardDescription className="text-neutral-400">
                 Your password has been successfully reset
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
               <div className="rounded-lg bg-zinc-800/50 border border-zinc-700 p-4 text-sm text-neutral-300">
-                <p>
-                  You can now sign in with your new password.
-                </p>
+                <p>You can now sign in with your new password.</p>
               </div>
             </CardContent>
             <CardFooter className="pt-6 pb-6">
@@ -146,7 +155,9 @@ function ResetPasswordForm() {
 
         <Card className="bg-zinc-900/90 border-zinc-700">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-white">Reset your password</CardTitle>
+            <CardTitle className="text-2xl font-bold text-white">
+              Reset your password
+            </CardTitle>
             <CardDescription className="text-neutral-400">
               Enter your new password below
             </CardDescription>
@@ -159,7 +170,9 @@ function ResetPasswordForm() {
                 </div>
               )}
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-neutral-200">New password</Label>
+                <Label htmlFor="password" className="text-neutral-200">
+                  New password
+                </Label>
                 <Input
                   id="password"
                   type="password"
@@ -178,7 +191,9 @@ function ResetPasswordForm() {
                 </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-neutral-200">Confirm new password</Label>
+                <Label htmlFor="confirmPassword" className="text-neutral-200">
+                  Confirm new password
+                </Label>
                 <Input
                   id="confirmPassword"
                   type="password"
@@ -190,7 +205,9 @@ function ResetPasswordForm() {
                   className="bg-zinc-800 border-zinc-700 text-white placeholder:text-neutral-500 focus:border-zinc-600"
                 />
                 {errors.confirmPassword && (
-                  <p className="text-sm text-red-400">{errors.confirmPassword}</p>
+                  <p className="text-sm text-red-400">
+                    {errors.confirmPassword}
+                  </p>
                 )}
               </div>
             </CardContent>
@@ -203,7 +220,10 @@ function ResetPasswordForm() {
                 {isLoading ? "Resetting password..." : "Reset password"}
               </Button>
               <Link href="/login" className="w-full">
-                <Button variant="ghost" className="w-full text-neutral-300 hover:text-white hover:bg-zinc-800">
+                <Button
+                  variant="ghost"
+                  className="w-full text-neutral-300 hover:text-white hover:bg-zinc-800"
+                >
                   Back to login
                 </Button>
               </Link>
