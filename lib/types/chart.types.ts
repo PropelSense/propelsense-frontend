@@ -57,4 +57,3 @@ export interface WeatherData {
   uvIndex: number;
   lastUpdated: string;
 }
-
