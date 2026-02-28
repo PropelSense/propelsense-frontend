@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   PieChart as RechartsPieChart,
@@ -6,9 +6,9 @@ import {
   Cell,
   Tooltip,
   ResponsiveContainer,
-} from 'recharts';
-import { DistributionDataPoint } from '@/lib/types/chart.types';
-import { CHART_COLORS } from '@/lib/data/sampleData';
+} from "recharts";
+import { DistributionDataPoint } from "@/lib/types/chart.types";
+import { CHART_COLORS } from "@/lib/data/sampleData";
 
 interface PieChartProps {
   data: DistributionDataPoint[];
@@ -40,7 +40,7 @@ export default function PieChart({
             label={
               showLabel
                 ? ({ name, percent }) =>
-                    `${name} ${(percent * 100).toFixed(0)}%`
+                    `${name} ${((percent ?? 0) * 100).toFixed(0)}%`
                 : false
             }
             outerRadius={100}
@@ -56,9 +56,9 @@ export default function PieChart({
           </Pie>
           <Tooltip
             contentStyle={{
-              backgroundColor: 'rgba(255, 255, 255, 0.95)',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
+              backgroundColor: "rgba(255, 255, 255, 0.95)",
+              border: "1px solid #ccc",
+              borderRadius: "4px",
             }}
           />
         </RechartsPieChart>
@@ -66,4 +66,3 @@ export default function PieChart({
     </div>
   );
 }
-
