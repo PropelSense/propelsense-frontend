@@ -10,6 +10,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import Link from "next/link";
+import Image from "next/image";
 import WeatherDetails from "./components/WeatherDetails";
 import MarineWeather from "./components/MarineWeather";
 import VesselMap from "./components/VesselMap";
@@ -205,6 +206,22 @@ export default function DashboardPage() {
     <div className="flex h-screen bg-linear-to-b from-neutral-900 via-neutral-950 to-neutral-900">
       {/* Sidebar */}
       <aside className="w-64 bg-neutral-900/95 border-r border-neutral-800/50 flex flex-col">
+        {/* Brand */}
+        <div className="px-4 py-3 border-b border-neutral-800/50 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Image
+              src="/logo.png"
+              alt="PropelSense"
+              width={28}
+              height={28}
+              className="rounded-md"
+            />
+            <span className="text-sm font-semibold text-white">
+              PropelSense
+            </span>
+          </div>
+        </div>
+
         {/* User Profile Section */}
         <div className="p-3">
           <Popover>

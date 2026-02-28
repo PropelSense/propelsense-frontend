@@ -29,8 +29,14 @@ export default function Home() {
         <div className="flex items-center justify-between">
           {/* Logo + Abo Akademi badge */}
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-linear-to-br from-zinc-700 to-zinc-800 rounded-lg flex items-center justify-center border border-zinc-600">
-              <span className="text-white font-bold text-xl">P</span>
+            <div className="w-10 h-10 rounded-lg overflow-hidden">
+              <Image
+                src="/logo.png"
+                alt="PropelSense"
+                width={40}
+                height={40}
+                className="w-full h-full object-contain"
+              />
             </div>
             <span className="text-2xl font-bold text-white">PropelSense</span>
 
