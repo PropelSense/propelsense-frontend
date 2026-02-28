@@ -15,6 +15,7 @@ export interface CategoryDataPoint {
 export interface DistributionDataPoint {
   name: string;
   value: number;
+  [key: string]: string | number;
 }
 
 export interface ScatterDataPoint {
