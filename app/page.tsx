@@ -228,7 +228,7 @@ export default function Home() {
             <div className="text-center space-y-2">
               <div className="text-4xl font-bold text-white">97.8%</div>
               <div className="text-sm text-neutral-500">
-                Model RÂ² (in-distribution)
+                Model R² (in-distribution)
               </div>
             </div>
             <div className="text-center space-y-2">
