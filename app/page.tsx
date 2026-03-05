@@ -216,7 +216,7 @@ export default function Home() {
               variant="outline"
               className="bg-white/10 border-2 border-white/30 text-white! hover:bg-white/20 hover:border-white/50 px-8 py-6 text-lg font-medium hover:text-white! backdrop-blur-sm"
               onClick={() => {
-                /* video link goes here */
+                window.open("https://youtu.be/LUjUJOJOHow", "_blank");
               }}
             >
               Watch Demo
