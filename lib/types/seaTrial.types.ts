@@ -59,8 +59,10 @@ export interface SeaTrial {
   contract_fuel?: number;
   meets_contract?: boolean;
 
-  // ML feature
+  // ML features
   time_since_dry_dock?: number;
+  /** Speed over ground (knots). Used with actual_speed to compute diff_speed_overground for the ML model. */
+  speed_over_ground?: number;
 
   // Additional data
   notes?: string;
@@ -113,8 +115,9 @@ export interface SeaTrialCreate {
   contract_power?: number;
   contract_fuel?: number;
 
-  // ML feature
+  // ML features
   time_since_dry_dock?: number;
+  speed_over_ground?: number;
 
   // Additional data
   notes?: string;
@@ -162,8 +165,9 @@ export interface SeaTrialUpdate {
   contract_power?: number;
   contract_fuel?: number;
 
-  // ML feature
+  // ML features
   time_since_dry_dock?: number;
+  speed_over_ground?: number;
 
   // Additional data
   notes?: string;
@@ -200,7 +204,8 @@ export interface SeaTrialAnalysis {
   rpm_comparison: PerformanceComparison;
 
   overall_performance_score: number;
-  meets_contract: boolean;
+  /** null when no contract specifications have been entered for this trial */
+  meets_contract: boolean | null;
   summary: string;
   recommendations: string[];
 }

@@ -273,6 +273,8 @@ export default function SeaTrialDashboard() {
       contract_speed: trial.contract_speed,
       contract_power: trial.contract_power,
       contract_fuel: trial.contract_fuel,
+      time_since_dry_dock: trial.time_since_dry_dock,
+      speed_over_ground: trial.speed_over_ground,
       notes: trial.notes ?? undefined,
     });
     setFormError(null);
@@ -688,12 +690,18 @@ export default function SeaTrialDashboard() {
                     </div>
                     <div
                       className={`text-lg font-semibold ${
-                        analysis.meets_contract
+                        analysis.meets_contract === null
+                          ? "text-zinc-400"
+                          : analysis.meets_contract
                           ? "text-green-400"
                           : "text-red-400"
                       }`}
                     >
-                      {analysis.meets_contract ? "✓ Met" : "✗ Not Met"}
+                      {analysis.meets_contract === null
+                        ? "— N/A"
+                        : analysis.meets_contract
+                        ? "✓ Met"
+                        : "✗ Not Met"}
                     </div>
                   </div>
                 </div>
@@ -995,7 +1003,8 @@ export default function SeaTrialDashboard() {
                 <div className="grid grid-cols-2 gap-4">
                   {(
                     [
-                      ["actual_speed", "Speed (knots)"],
+                      ["actual_speed", "Speed Through Water (knots)"],
+                      ["speed_over_ground", "Speed Over Ground (knots)"],
                       ["actual_power", "Power (kW)"],
                       ["actual_fuel_consumption", "Fuel (tonnes/day)"],
                       ["actual_rpm", "RPM"],
