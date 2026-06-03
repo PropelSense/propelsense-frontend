@@ -273,7 +273,6 @@ export default function SeaTrialDashboard() {
       contract_speed: trial.contract_speed,
       contract_power: trial.contract_power,
       contract_fuel: trial.contract_fuel,
-      time_since_dry_dock: trial.time_since_dry_dock,
       speed_over_ground: trial.speed_over_ground,
       notes: trial.notes ?? undefined,
     });
